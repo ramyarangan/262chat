@@ -6,21 +6,6 @@ from flask import render_template, request, Response, jsonify
 from app import app, models
 import json
 
-@app.route('/')
-@app.route('/index')
-def index():
-    messages = [  # fake array of posts
-        { 
-            'from': 'Ramya', 
-            'body': 'I\'m on the shuttle!' 
-        },
-        { 
-            'from': 'everyone', 
-            'body': 'LOL' 
-        }
-    ]
-    return render_template("messages.txt",
-                           messages=messages)
 
 @app.errorhandler(404)
 def not_found(error=None):
@@ -40,7 +25,7 @@ def response_ok():
 
 ## ACCOUNTS 
 
-@app.route('/accounts/create', methods=['GET', 'POST'])
+@app.route('/accounts/create', methods=['POST'])
 def create_account():
 	# XXX TODO CREATE FOR REAL
 	user = request.data.username
@@ -52,7 +37,7 @@ def delete_account():
 	user = request.data.username
 	return response_ok()
 
-@app.route('/accounts/login', methods=['GET', 'POST'])
+@app.route('/accounts/login', methods=['POST'])
 def login():
 	# if username failed then..
 	# return not_found()
@@ -65,14 +50,13 @@ def logout():
 	# XXX TODO LOGOUT FOR REAL; is this just a no-op?
     return response_ok()
 
-@app.route('/accounts/search/<query>', methods=['GET', 'POST'])
-def search_accounts(query):
-	account_list = ["1", "2"]
+@app.route('/accounts/search/', methods=['POST'])
+def search_accounts():
+	query = request.data.query
+	account_list = ["user1", "user2"]
 	data = {
 		"accounts": account_list
 	}
-	js = json.dumps(data)
-
 	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
@@ -82,29 +66,74 @@ def search_accounts(query):
 @app.route('/groups/create', methods=['GET', 'POST'])
 def create_group():
 	# XXX TODO CREATE FOR REAL
-	creator = request.data.creator
+	creator = request.data.username
+	users = request.data.user_list
+	group_name = request.data.group_name
 	return response_ok()
 
 @app.route('/groups/search/<query>', methods=['GET', 'POST'])
 def search_groups(query):
-	return response_ok()
+	query = request.data.query
+	group_list = ["group1", "group2"]
+	data = {
+		"groups": group_list
+	}
+	resp = jsonify(data)
+	resp.status_code = 200
+	return resp
 
 ## MESSAGES 
 
 @app.route('/messages/fetch', methods=['GET', 'POST'])
 def fetch_messages():
 	user = request.data.username
-	return response_ok()
 
-@app.route('/messages/fetch-undelivered', methods=['GET', 'POST'])
+	messages = ["blah", "you suck", "these are great messages"]
+	data = {
+		"messages": messages
+	}
+	resp = jsonify(data)
+	resp.status_code = 200
+	return resp
+
+@app.route('/messages/fetch-undelivered', methods=['POST'])
 def fetch_undelivered_messages():
-	user = request.data.username
-	return response_ok()
+	user = request.data.to_user
+	from_user = request.data.from_name
+	# get only the messages from "from_user"
+	messages = ["blah", "you suck", "these are great messages"]
+	data = {
+		"messages": messages
+	}
+	resp = jsonify(data)
+	resp.status_code = 200
+	return resp
+
+@app.route('/messages/fetch-undelivered-group', methods=['POST'])
+def fetch_undelivered_messages_group():
+	user = request.data.to_user
+	from_user = request.data.from_name
+	# Get these messages from everyone in the specified group
+	messages = ["blah", "you suck", "these are great messages"]
+	data = {
+		"messages": messages
+	}
+	resp = jsonify(data)
+	resp.status_code = 200
+	return resp
 
 @app.route('/messages/send', methods=['POST'])
 def send_message():
 	sender = request.data.sender
 	to = request.data.to
+	message = request.data.message
+	return response_ok()
+
+@app.route('/messages/send-group', methods=['POST'])
+def send_message_group():
+	sender = request.data.sender
+	to = request.data.to # Now this is a group name.. send to everyone in group
+	message = request.data.message
 	return response_ok()
 
 @app.route('/messages/ack', methods=['GET', 'POST'])
