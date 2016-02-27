@@ -3,7 +3,7 @@ Handlers for requests from web browsers or other clients.
 '''
 
 from flask import render_template, request
-from app import app
+from app import app, models
 
 RESPONSE_OK = 'Success\n'
 
@@ -28,8 +28,10 @@ def index():
 
 @app.route('/accounts/create', methods=['GET', 'POST'])
 def create_account():
-	# XXX TODO CREATE FOR REAL
-	user = request.data.username
+	user = models.User(request.data)
+	db.session.add(user)
+	db.session.commit()
+
 	return RESPONSE_OK
 
 @app.route('/accounts/delete', methods=['GET', 'POST'])
