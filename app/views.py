@@ -3,7 +3,7 @@ Handlers for requests from web browsers or other clients.
 '''
 
 from flask import render_template, request, Response, jsonify
-from app import app
+from app import app, models
 import json
 
 @app.route('/')
