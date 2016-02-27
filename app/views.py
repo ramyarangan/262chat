@@ -4,6 +4,7 @@ Handlers for requests from web browsers or other clients.
 
 from flask import render_template, request, Response, jsonify
 from app import app
+import json
 
 @app.route('/')
 @app.route('/index')
@@ -33,7 +34,7 @@ def not_found(error=None):
     return resp
 
 def response_ok():
-	resp = jsonify(message)
+	resp = jsonify({})
 	resp.status_code = 200
 	return resp
 
@@ -66,15 +67,15 @@ def logout():
 
 @app.route('/accounts/search/<query>', methods=['GET', 'POST'])
 def search_accounts(query):
+	account_list = ["1", "2"]
 	data = {
-		'hello': 'world'
+		"accounts": account_list
 	}
 	js = json.dumps(data)
 
 	resp = jsonify(data)
 	resp.status_code = 200
-	return response_ok()
-
+	return resp
 
 ## GROUPS
 
@@ -87,7 +88,6 @@ def create_group():
 @app.route('/groups/search/<query>', methods=['GET', 'POST'])
 def search_groups(query):
 	return response_ok()
-
 
 ## MESSAGES 
 
@@ -112,5 +112,3 @@ def ack_message():
 	user = request.data.username
 	messages = request.data.messages
 	return response_ok()
-
-
