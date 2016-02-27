@@ -28,13 +28,15 @@ def response_ok():
 @app.route('/accounts/create', methods=['POST'])
 def create_account():
 	# XXX TODO CREATE FOR REAL
-	user = request.data.username
+	parsed_json = json.loads(request.data)
+	user = parsed_json["username"]
 	return response_ok()
 
 @app.route('/accounts/delete', methods=['GET', 'POST'])
 def delete_account():
 	# XXX TODO CREATE FOR REAL
-	user = request.data.username
+	parsed_json = json.loads(request.data)
+	user = parsed_json["username"]
 	return response_ok()
 
 @app.route('/accounts/login', methods=['POST'])
@@ -52,7 +54,8 @@ def logout():
 
 @app.route('/accounts/search/', methods=['POST'])
 def search_accounts():
-	query = request.data.query
+	parsed_json = json.loads(request.data)
+	query = parsed_json["query"]
 	account_list = ["user1", "user2"]
 	data = {
 		"accounts": account_list
@@ -65,15 +68,16 @@ def search_accounts():
 
 @app.route('/groups/create', methods=['GET', 'POST'])
 def create_group():
-	# XXX TODO CREATE FOR REAL
-	creator = request.data.username
-	users = request.data.user_list
-	group_name = request.data.group_name
+	parsed_json = json.loads(request.data)
+	creator = parsed_json["username"]
+	users = parsed_json["user_list"]
+	group_name = parsed_json["group_name"]
 	return response_ok()
 
 @app.route('/groups/search/<query>', methods=['GET', 'POST'])
 def search_groups(query):
-	query = request.data.query
+	parsed_json = json.loads(request.data)
+	query = parsed_json["query"]
 	group_list = ["group1", "group2"]
 	data = {
 		"groups": group_list
@@ -86,7 +90,8 @@ def search_groups(query):
 
 @app.route('/messages/fetch', methods=['GET', 'POST'])
 def fetch_messages():
-	user = request.data.username
+	parsed_json = json.loads(request.data)
+	user = parsed_json["username"]
 
 	messages = ["blah", "you suck", "these are great messages"]
 	data = {
@@ -98,8 +103,9 @@ def fetch_messages():
 
 @app.route('/messages/fetch-undelivered', methods=['POST'])
 def fetch_undelivered_messages():
-	user = request.data.to_user
-	from_user = request.data.from_name
+	parsed_json = json.loads(request.data)
+	user = parsed_json["to_user"]
+	from_user = parsed_json["from_name"]
 	# get only the messages from "from_user"
 	messages = ["blah", "you suck", "these are great messages"]
 	data = {
@@ -111,8 +117,9 @@ def fetch_undelivered_messages():
 
 @app.route('/messages/fetch-undelivered-group', methods=['POST'])
 def fetch_undelivered_messages_group():
-	user = request.data.to_user
-	from_user = request.data.from_name
+	parsed_json = json.loads(request.data)
+	user = parsed_json["to_user"]
+	from_user = parsed_json["from_name"]
 	# Get these messages from everyone in the specified group
 	messages = ["blah", "you suck", "these are great messages"]
 	data = {
@@ -124,16 +131,18 @@ def fetch_undelivered_messages_group():
 
 @app.route('/messages/send', methods=['POST'])
 def send_message():
-	sender = request.data.sender
-	to = request.data.to
-	message = request.data.message
+	parsed_json = json.loads(request.data)
+	sender = parsed_json["sender"]
+	to = parsed_json["to"]
+	message = parsed_json["message"]
 	return response_ok()
 
 @app.route('/messages/send-group', methods=['POST'])
 def send_message_group():
-	sender = request.data.sender
-	to = request.data.to # Now this is a group name.. send to everyone in group
-	message = request.data.message
+	parsed_json = json.loads(request.data)
+	sender = parsed_json["sender"]
+	to = parsed_json["to"] # Now this is a group name.. send to everyone in group
+	message = parsed_json["message"]
 	return response_ok()
 
 @app.route('/messages/ack', methods=['GET', 'POST'])
