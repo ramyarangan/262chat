@@ -3,9 +3,11 @@ Handlers for requests from web browsers or other clients.
 '''
 
 from flask import render_template, request, Response, jsonify
-from app import app, models
+from sqlalchemy import exc
+from app import app, db, models
 import json
 
+DEBUG = 1
 
 @app.errorhandler(404)
 def not_found(error=None):
@@ -18,8 +20,8 @@ def not_found(error=None):
 
     return resp
 
-def response_ok():
-	resp = jsonify({})
+def response_ok(data={}):
+	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
 
@@ -29,65 +31,133 @@ def response_ok():
 def create_account():
 	# XXX TODO CREATE FOR REAL
 	parsed_json = json.loads(request.data)
-	user = parsed_json["username"]
-	return response_ok()
+	username = parsed_json["username"]
+
+	user = models.User(username=username)
+	try:
+		db.session.add(user)
+		db.session.commit()
+		return response_ok()
+	except exc.IntegrityError:
+		print("Duplicate username")
+        db.session.rollback()
+        return not_found() # TODO XXX
+    
+def get_user_by_username(username):
+	return models.User.query.filter_by(username=username).first()
 
 @app.route('/accounts/delete', methods=['GET', 'POST'])
 def delete_account():
 	# XXX TODO CREATE FOR REAL
 	parsed_json = json.loads(request.data)
-	user = parsed_json["username"]
-	return response_ok()
+	username = parsed_json["username"]
+
+	user = get_user_by_username(username)
+	if user:
+		db.session.delete(user)
+		try:
+  			db.session.commit()
+  			return response_ok()
+		except exc.SQLAlchemyError:
+			#TODO
+  			pass
+	else:
+		## TODO user not found error
+		pass 
 
 @app.route('/accounts/login', methods=['POST'])
 def login():
-	# if username failed then..
-	# return not_found()
-	# else, log in and response_ok
-	# XXX TODO LOGIN FOR REAL
-    return response_ok() 
-
-@app.route('/accounts/logout', methods=['GET', 'POST'])
-def logout():
-	# XXX TODO LOGOUT FOR REAL; is this just a no-op?
-    return response_ok()
-
-@app.route('/accounts/search/', methods=['POST'])
-def search_accounts():
 	parsed_json = json.loads(request.data)
-	query = parsed_json["query"]
-	account_list = ["user1", "user2"]
+	username = parsed_json["username"]
+
+	user = get_user_by_username(username)
+	if user:
+		# TODO validate password
+		return response_ok()
+	else:
+		return not_found() ## TODO FIX
+
+#@app.route('/accounts/logout', methods=['GET', 'POST'])
+#def logout():
+	# XXX MAYBE WE SHOULD DELETE THIS FUNCTION
+#    return response_ok()
+
+@app.route('/accounts/search', methods=['POST'])
+def search_users():
+	parsed_json = json.loads(request.data)
+	query = parsed_json['query']
+
+	# match SQLalchemy search syntax
+	query = query.replace('*', '%')
+
+	# query the database for matching usernames
+	matches = models.User.query.filter(models.User.username.like(query)).all()
+	match_names = [match.username for match in matches]
+
 	data = {
-		"accounts": account_list
+		"accounts": match_names
 	}
-	resp = jsonify(data)
-	resp.status_code = 200
-	return resp
+	return response_ok(data)
+
 
 ## GROUPS
 
 @app.route('/groups/create', methods=['GET', 'POST'])
 def create_group():
 	parsed_json = json.loads(request.data)
-	creator = parsed_json["username"]
-	users = parsed_json["user_list"]
-	group_name = parsed_json["group_name"]
+	creator = parsed_json["creator"]
+	users = parsed_json["users"]
+	groupname = parsed_json["groupname"]
 	return response_ok()
 
-@app.route('/groups/search/<query>', methods=['GET', 'POST'])
-def search_groups(query):
+	user = models.User(username=username)
+	try:
+		db.session.add(user)
+		db.session.commit()
+		return response_ok()
+	except exc.IntegrityError:
+		print("Duplicate username")
+        db.session.rollback()
+        return not_found() # TODO XXX
+    
+
+
+def search_by_groupname(fmt_query):
+	# query the database for matching groupnames
+	matches = models.Group.query.filter(models.Group.groupname.like(fmt_query)).all()
+	
+	return set(matches)
+
+def search_by_username(fmt_query):
+	# query database for matching usernames
+	group_set = set()
+	matches = models.User.query.filter(models.User.username.like(fmt_query)).all()
+	for user in matches:
+		group_set |= set(user.groups)
+
+	return group_set
+
+# TODO: Need to handle responses if we have non-unique groupnames
+@app.route('/groups/search', methods=['GET', 'POST'])
+def search_groups():
 	parsed_json = json.loads(request.data)
-	query = parsed_json["query"]
-	group_list = ["group1", "group2"]
+	query = parsed_json['query']
+
+	# match SQLalchemy search syntax
+	fmt_query = query.replace('*', '%')
+
+	groupname_search_set = search_by_groupname(fmt_query)
+	username_search_set = search_by_username(fmt_query) - groupname_set
+
 	data = {
-		"groups": group_list
+		"groups_by_groupname": [group.groupname for group in groupname_search_set],
+		"groups_by_username": [group.groupname for group in groupname_search_set],
 	}
-	resp = jsonify(data)
-	resp.status_code = 200
-	return resp
+
+	return response_ok(data)
+
 
 ## MESSAGES 
-
 @app.route('/messages/fetch', methods=['GET', 'POST'])
 def fetch_messages():
 	parsed_json = json.loads(request.data)
