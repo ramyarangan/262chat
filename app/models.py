@@ -11,7 +11,8 @@ class Seen(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     viewer = db.Column(db.String(20), db.ForeignKey('user.username'))
-    groupname = db.Column(db.String(20), db.ForeignKey('group.groupname'))
+    room_user = db.Column(db.String(20), db.ForeignKey('user.username'))
+    room_group = db.Column(db.String(20), db.ForeignKey('group.groupname'))
     last_seen_id = db.Column(db.Integer, db.ForeignKey('message.id'), default=0)
 
 

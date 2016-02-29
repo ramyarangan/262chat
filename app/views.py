@@ -231,11 +231,7 @@ def query_messages_to_send(to, sender_username):
 		#TODO
 		pass
 
-	message_texts = [message.body for message in message_list]
-	message_times = [message.timestamp for message in message_list]
-	message_ids = [message.id for message in message_list]
-	#return zip(message_texts, message_times, message_ids)
-	return [(1,2,3),(1,2,3),(1,2,3)]
+	
 
 @app.route('/messages/fetch-undelivered', methods=['POST'])
 def fetch_undelivered_messages():
@@ -327,7 +323,34 @@ def send_message_group():
 	return response_ok()
 
 @app.route('/messages/ack', methods=['GET', 'POST'])
-def ack_message():
-	user = request.data.username
-	messages = request.data.messages
-	return response_ok()
+def ack_last_message():
+	parsed_json = json.loads(request.data)
+	viewer = parsed_json["viewer"]
+	room_user = parsed_json["room_user"]
+	room_group = parsed_json["room_group"]
+	last_seen_id = parsed_json["last_seen_id"]
+
+	if not (room_user or room_group):
+		print "Invalid parameters"
+		#TODO
+		return not_found()
+
+	msgs = models.Seen.query.filter_by(viewer=viewer)
+	if room_user:
+		msg = msgs.filter_by(room_user=room_user).first()
+	else: # room_group
+		msg = msgs.filter_by(room_group=room_group).first()
+	
+	if not msg:
+		print "Could not find chatroom in database"
+		#TODO
+		return not_found()
+
+	msg.last_seen_id = max(last_seen_id, msg.last_seen_id)
+	try:
+		db.session.commit()
+		return response_ok()
+	except exc.SQLAlchemyError:
+		#TODO
+		db.session.rollback()
+		pass
