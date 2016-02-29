@@ -225,17 +225,15 @@ def query_messages_to_send(to, sender_username):
 		msg.received = models.Message.STATUS_PENDING
 	try:
 		db.session.commit()
-		return response_ok()
 	except exc.SQLAlchemyError:
 		db.session.rollback()
 		#TODO
 		pass
 
-	message_texts = [message.body for message in message_list]
-	message_times = [message.timestamp for message in message_list]
-	message_ids = [message.id for message in message_list]
-	#return zip(message_texts, message_times, message_ids)
-	return [(1,2,3),(1,2,3),(1,2,3)]
+	message_texts = [message.body for message in msgs]
+	message_times = [message.timestamp for message in msgs]
+	message_ids = [message.id for message in msgs]
+	return zip(message_texts, message_times, message_ids)
 
 @app.route('/messages/fetch-undelivered', methods=['POST'])
 def fetch_undelivered_messages():
@@ -295,7 +293,6 @@ def send_message():
 	db.session.add(m)
 	try:
 		db.session.commit()
-		return response_ok()
 	except exc.SQLAlchemyError:
 		#TODO
 		pass
@@ -319,7 +316,6 @@ def send_message_group():
 		db.session.add(m)
 		try:
 			db.session.commit()
-			return response_ok()
 		except exc.SQLAlchemyError:
 			#TODO
 			pass
