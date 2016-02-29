@@ -210,17 +210,24 @@ def fetch_messages():
 	resp.status_code = 200
 	return resp
 
-def query_messages_to_send(user, from_user):
-	message_list = models.Message.query.filter_by(to_username=user)
-	message_list = message_list.filter_by(sender_username=from_user)
-	message_list = message_list.filter_by(received=models.Message.STATUS_NEW)
-	message_list = message_list.all()
-	for message in message_list:
-		message.received = models.Message.STATUS_PENDING
+# TODO: Change models.Message to have a to_name, not username, because it 
+# might not be username
+def query_messages_to_send(to, sender_username):
+	msgs = models.Message.query.filter( \
+		(models.Message.to_username == to) & \
+		(models.Message.sender_username == sender_username) & \
+		(models.Message.received == models.Message.STATUS_NEW)
+		).all()
+
+	print msgs
+
+	for msg in msgs:
+		msg.received = models.Message.STATUS_PENDING
 	try:
 		db.session.commit()
 		return response_ok()
 	except exc.SQLAlchemyError:
+		db.session.rollback()
 		#TODO
 		pass
 
@@ -233,8 +240,9 @@ def query_messages_to_send(user, from_user):
 @app.route('/messages/fetch-undelivered', methods=['POST'])
 def fetch_undelivered_messages():
 	parsed_json = json.loads(request.data)
-	user = parsed_json["to_user"]
-	from_user = parsed_json["from_name"]
+	user = parsed_json["to"]
+	from_user = parsed_json["from"]
+
 	# get only the messages from "from_user"
 	text_times = query_messages_to_send(user, from_user)
 
