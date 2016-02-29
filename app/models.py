@@ -49,7 +49,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), index=True, unique=True)
 
-    received_msgs = db.relationship('Message', backref='to', lazy='dynamic', \
+    received_msgs = db.relationship('Message', backref='to_user', lazy='dynamic', \
         foreign_keys=[Message.to_username])
     sent_msgs = db.relationship('Message', lazy='dynamic', \
         foreign_keys=[Message.sender_username])
@@ -67,7 +67,7 @@ class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     groupname = db.Column(db.String(40), index=True, unique=True)
     
-    msgs = db.relationship('Message', backref='to', lazy='dynamic', foreign_keys=[Message.to_groupname])
+    msgs = db.relationship('Message', backref='to_group', lazy='dynamic', foreign_keys=[Message.to_groupname])
     
     users = db.relationship("User", secondary=users_groups_assoc_table, \
         back_populates="groups")
