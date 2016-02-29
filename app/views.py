@@ -6,6 +6,7 @@ from flask import render_template, request, Response, jsonify
 from sqlalchemy import exc
 from app import app, db, models
 import json
+from datetime import datetime
 
 DEBUG = 1
 
@@ -45,6 +46,10 @@ def create_account():
     
 def get_user_by_username(username):
 	return models.User.query.filter_by(username=username).first()
+
+def get_users_by_groupname(groupname):
+	group = models.Group.query.filter_by(groupname=groupname).first()
+	return group.users
 
 @app.route('/accounts/delete', methods=['GET', 'POST'])
 def delete_account():
@@ -180,18 +185,50 @@ def search_groups():
 	return response_ok(data)
 
 ## MESSAGES 
+# TODO: Check that messages are sent to people in the database, and so on
+# Basically all error checking.
 @app.route('/messages/fetch', methods=['GET', 'POST'])
 def fetch_messages():
 	parsed_json = json.loads(request.data)
 	user = parsed_json["username"]
 
-	messages = ["blah", "you suck", "these are great messages"]
+	message_list = models.Message.query.filter_by(to_username=user).all()
+	for message in message_list:
+		message.received = models.Message.STATUS_PENDING
+	try:
+		db.session.commit()
+		return response_ok()
+	except exc.SQLAlchemyError:
+		#TODO
+		pass
+
 	data = {
-		"messages": messages
+		"messages": [message.body for message in message_list],
+		"ids": [message.id for message in message_list]
 	}
 	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
+
+def query_messages_to_send(user, from_user):
+	message_list = models.Message.query.filter_by(to_username=user)
+	message_list = message_list.filter_by(sender_username=from_user)
+	message_list = message_list.filter_by(received=models.Message.STATUS_NEW)
+	message_list = message_list.all()
+	for message in message_list:
+		message.received = models.Message.STATUS_PENDING
+	try:
+		db.session.commit()
+		return response_ok()
+	except exc.SQLAlchemyError:
+		#TODO
+		pass
+
+	message_texts = [message.body for message in message_list]
+	message_times = [message.timestamp for message in message_list]
+	message_ids = [message.id for message in message_list]
+	#return zip(message_texts, message_times, message_ids)
+	return [(1,2,3),(1,2,3),(1,2,3)]
 
 @app.route('/messages/fetch-undelivered', methods=['POST'])
 def fetch_undelivered_messages():
@@ -199,9 +236,14 @@ def fetch_undelivered_messages():
 	user = parsed_json["to_user"]
 	from_user = parsed_json["from_name"]
 	# get only the messages from "from_user"
-	messages = ["blah", "you suck", "these are great messages"]
+	text_times = query_messages_to_send(user, from_user)
+
+	messages_sorted = sorted(text_times, key=lambda message : message[1])
+	messages = [message[0] for message in messages_sorted]
+	ids = [message[2] for message in messages_sorted]
 	data = {
-		"messages": messages
+		"messages": messages,
+		"ids": ids
 	}
 	resp = jsonify(data)
 	resp.status_code = 200
@@ -210,12 +252,23 @@ def fetch_undelivered_messages():
 @app.route('/messages/fetch-undelivered-group', methods=['POST'])
 def fetch_undelivered_messages_group():
 	parsed_json = json.loads(request.data)
-	user = parsed_json["to_user"]
-	from_user = parsed_json["from_name"]
+	to_user = parsed_json["to_user"]
+	from_group = parsed_json["from_name"]
 	# Get these messages from everyone in the specified group
-	messages = ["blah", "you suck", "these are great messages"]
+	users = get_users_by_groupname(from_group)
+	usernames = [user.username for user in users]
+	messages = []
+	for from_user in usernames:
+		text_times = query_messages_to_send(to_user, from_user)
+		text_time_users = [(text_time[0], text_time[1], text_time[2], from_user) \
+										for text_time in text_times]
+		messages = messages + text_time_users
+
+	messages_sorted = sorted(messages, key = lambda message: message[1])
 	data = {
-		"messages": messages
+		"messages": [message[0] for message in messages_sorted],
+		"authors": [message[3] for message in messages_sorted],
+		"ids": [message[2] for message in messages_sorted]
 	}
 	resp = jsonify(data)
 	resp.status_code = 200
@@ -227,14 +280,42 @@ def send_message():
 	sender = parsed_json["sender"]
 	to = parsed_json["to"]
 	message = parsed_json["message"]
+
+	m = models.Message(body=message, timestamp=datetime.now(),\
+		received=models.Message.STATUS_NEW, sender_username=sender,\
+		to_username=to)
+	db.session.add(m)
+	try:
+		db.session.commit()
+		return response_ok()
+	except exc.SQLAlchemyError:
+		#TODO
+		pass
+
 	return response_ok()
 
 @app.route('/messages/send-group', methods=['POST'])
 def send_message_group():
 	parsed_json = json.loads(request.data)
 	sender = parsed_json["sender"]
-	to = parsed_json["to"] # Now this is a group name.. send to everyone in group
+	to_group = parsed_json["to"] # Now this is a group name.. send to everyone in group
 	message = parsed_json["message"]
+
+	users = get_users_by_groupname(to_group)
+	to_group_users = [user.username for user in users]
+
+	for to in to_group_users:
+		m = models.Message(body=message, timestamp=datetime.now(),\
+		received=models.Message.STATUS_NEW, sender_username=sender,\
+		to_username=to)
+		db.session.add(m)
+		try:
+			db.session.commit()
+			return response_ok()
+		except exc.SQLAlchemyError:
+			#TODO
+			pass
+
 	return response_ok()
 
 @app.route('/messages/ack', methods=['GET', 'POST'])
