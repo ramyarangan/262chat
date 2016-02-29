@@ -193,47 +193,16 @@ def fetch_messages():
 	user = parsed_json["username"]
 
 	message_list = models.Message.query.filter_by(to_username=user).all()
-	for message in message_list:
-		message.received = models.Message.STATUS_PENDING
-	try:
-		db.session.commit()
-		return response_ok()
-	except exc.SQLAlchemyError:
-		#TODO
-		pass
 
 	data = {
 		"messages": [message.body for message in message_list],
-		"ids": [message.id for message in message_list]
-	}
+		"ids": [message.id for message in message_list],
+		"authors": [message.sender_username for message in message_list],
+		"group": [message.to_group for message in message_list]
+	} 
 	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
-
-# TODO: Change models.Message to have a to_name, not username, because it 
-# might not be username
-def query_messages_to_send(to, sender_username):
-	msgs = models.Message.query.filter( \
-		(models.Message.to_username == to) & \
-		(models.Message.sender_username == sender_username) & \
-		(models.Message.received == models.Message.STATUS_NEW)
-		).all()
-
-	print msgs
-
-	for msg in msgs:
-		msg.received = models.Message.STATUS_PENDING
-	try:
-		db.session.commit()
-	except exc.SQLAlchemyError:
-		db.session.rollback()
-		#TODO
-		pass
-
-	message_texts = [message.body for message in msgs]
-	message_times = [message.timestamp for message in msgs]
-	message_ids = [message.id for message in msgs]
-	return zip(message_texts, message_times, message_ids)
 
 @app.route('/messages/fetch-undelivered', methods=['POST'])
 def fetch_undelivered_messages():
@@ -241,15 +210,24 @@ def fetch_undelivered_messages():
 	user = parsed_json["to"]
 	from_user = parsed_json["from"]
 
-	# get only the messages from "from_user"
-	text_times = query_messages_to_send(user, from_user)
+	# get only the unseen messages from "from_user"
+	seen_msg = models.Seen.query.filter( \
+		(models.Seen.viewer == user) & \
+		(models.Seen.room_user == from_user)).first()
+	msgs = []
+	last_id = None
+	if (seen_msg != None):
+		last_id = seen_msg.last_seen_id
+		msgs = models.Message.query.filter( \
+			(models.Message.to_username == user) & \
+			(models.Message.sender_username == from_user) & \
+			(models.Message.id > last_id)). \
+			order_by(models.Message.id).all()
 
-	messages_sorted = sorted(text_times, key=lambda message : message[1])
-	messages = [message[0] for message in messages_sorted]
-	ids = [message[2] for message in messages_sorted]
 	data = {
-		"messages": messages,
-		"ids": ids
+		"messages": [msg.body for msg in msgs],
+		"ids": [msg.id for msg in msgs],
+		"last_id": last_id
 	}
 	resp = jsonify(data)
 	resp.status_code = 200
@@ -258,28 +236,34 @@ def fetch_undelivered_messages():
 @app.route('/messages/fetch-undelivered-group', methods=['POST'])
 def fetch_undelivered_messages_group():
 	parsed_json = json.loads(request.data)
-	to_user = parsed_json["to_user"]
-	from_group = parsed_json["from_name"]
+	to_user = parsed_json["to"]
+	from_group = parsed_json["from"]
+
 	# Get these messages from everyone in the specified group
 	users = get_users_by_groupname(from_group)
 	usernames = [user.username for user in users]
-	messages = []
-	for from_user in usernames:
-		text_times = query_messages_to_send(to_user, from_user)
-		text_time_users = [(text_time[0], text_time[1], text_time[2], from_user) \
-										for text_time in text_times]
-		messages = messages + text_time_users
 
-	messages_sorted = sorted(messages, key = lambda message: message[1])
+	seen_msg = models.Seen.query.filter( \
+		(models.Seen.viewer == to_user) & \
+		(models.Seen.room_group == from_group)).first()
+	last_id = seen_msg.last_seen_id
+	msgs = models.Message.query.filter( \
+		(models.Message.to_groupname == from_group) & \
+		(models.Message.sender_username in usernames) & \
+		(models.Message.id > last_id)). \
+		order_by(models.Message.id).all()
+
 	data = {
-		"messages": [message[0] for message in messages_sorted],
-		"authors": [message[3] for message in messages_sorted],
-		"ids": [message[2] for message in messages_sorted]
+		"messages": [msg.body for msg in msgs],
+		"authors": [msg.sender_username for msg in msgs],
+		"ids": [msg.id for msg in msgs],
+		"last_id": last_id
 	}
 	resp = jsonify(data)
 	resp.status_code = 200
 	return resp
 
+# here also add to last seen table
 @app.route('/messages/send', methods=['POST'])
 def send_message():
 	parsed_json = json.loads(request.data)
@@ -288,9 +272,12 @@ def send_message():
 	message = parsed_json["message"]
 
 	m = models.Message(body=message, timestamp=datetime.now(),\
-		received=models.Message.STATUS_NEW, sender_username=sender,\
-		to_username=to)
+		sender_username=sender, to_groupname = None, to_username=to)
 	db.session.add(m)
+
+	s = models.Seen(viewer=to, room_user=sender, room_group=None)
+	db.session.add(s)
+
 	try:
 		db.session.commit()
 	except exc.SQLAlchemyError:
@@ -309,11 +296,18 @@ def send_message_group():
 	users = get_users_by_groupname(to_group)
 	to_group_users = [user.username for user in users]
 
+	m = models.Message(body=message, timestamp=datetime.now(),\
+	sender_username=sender, to_groupname=to_group)
+	db.session.add(m)
+	try:
+		db.session.commit()
+	except exc.SQLAlchemyError:
+		#TODO
+		pass
+
 	for to in to_group_users:
-		m = models.Message(body=message, timestamp=datetime.now(),\
-		received=models.Message.STATUS_NEW, sender_username=sender,\
-		to_username=to)
-		db.session.add(m)
+		s = models.Seen(viewer=to, room_user=None, room_group=to_group)
+		db.session.add(s)
 		try:
 			db.session.commit()
 		except exc.SQLAlchemyError:
@@ -326,8 +320,8 @@ def send_message_group():
 def ack_last_message():
 	parsed_json = json.loads(request.data)
 	viewer = parsed_json["viewer"]
-	room_user = parsed_json["room_user"]
-	room_group = parsed_json["room_group"]
+	room_user = parsed_json.get("room_user")
+	room_group = parsed_json.get("room_group")
 	last_seen_id = parsed_json["last_seen_id"]
 
 	if not (room_user or room_group):
@@ -336,10 +330,11 @@ def ack_last_message():
 		return not_found()
 
 	msgs = models.Seen.query.filter_by(viewer=viewer)
-	if room_user:
-		msg = msgs.filter_by(room_user=room_user).first()
-	else: # room_group
+	msg = msgs.first() 
+	if (room_group != None):
 		msg = msgs.filter_by(room_group=room_group).first()
+	if (room_user != None):
+		msg = msgs.filter_by(room_user=room_user).first()
 	
 	if not msg:
 		print "Could not find chatroom in database"

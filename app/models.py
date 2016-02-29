@@ -11,8 +11,10 @@ class Seen(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     viewer = db.Column(db.String(20), db.ForeignKey('user.username'))
-    room_user = db.Column(db.String(20), db.ForeignKey('user.username'))
-    room_group = db.Column(db.String(20), db.ForeignKey('group.groupname'))
+    room_user = db.Column(db.String(20), db.ForeignKey('user.username'), 
+        nullable=True)
+    room_group = db.Column(db.String(20), db.ForeignKey('group.groupname'),
+        nullable=True)
     last_seen_id = db.Column(db.Integer, db.ForeignKey('message.id'), default=0)
 
 
@@ -26,9 +28,9 @@ class Message(db.Model):
     sender_username = db.Column(db.String(20), db.ForeignKey('user.username'), \
         nullable=False)
     to_username = db.Column(db.String(20), db.ForeignKey('user.username'), \
-        nullable=False)
+        nullable=True)
     to_groupname = db.Column(db.String(40), db.ForeignKey('group.groupname'), \
-        nullable=False)
+        nullable=True)
 
     def __repr__(self):
         return '<Message %r>' % (self.body)
