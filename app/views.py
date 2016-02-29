@@ -169,15 +169,15 @@ def search_groups():
 	fmt_query = query.replace('*', '%')
 
 	groupname_search_set = search_by_groupname(fmt_query)
-	username_search_set = search_by_username(fmt_query) - groupname_set
+	username_search_set = search_by_username(fmt_query) - groupname_search_set
+	print username_search_set
 
 	data = {
 		"groups_by_groupname": [group.groupname for group in groupname_search_set],
-		"groups_by_username": [group.groupname for group in groupname_search_set],
+		"groups_by_username": [group.groupname for group in username_search_set],
 	}
 
 	return response_ok(data)
-
 
 ## MESSAGES 
 @app.route('/messages/fetch', methods=['GET', 'POST'])
