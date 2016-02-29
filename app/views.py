@@ -106,21 +106,43 @@ def search_users():
 def create_group():
 	parsed_json = json.loads(request.data)
 	creator = parsed_json["creator"]
-	users = parsed_json["users"]
+	usernames = parsed_json["usernames"]
 	groupname = parsed_json["groupname"]
-	return response_ok()
+	
+	print creator
+	print usernames
+	print groupname
 
-	user = models.User(username=username)
+	# Validate and retrieve users
+	if creator not in usernames:
+		print "Error: creator not included in user list"
+		# Should never happen with our client, but enforce that creator is included in group 
+		return not_found() # TODO XXX
+	users = []
+	for username in usernames:
+		user = get_user_by_username(username)
+		if not user:
+			# User does not exist D:
+			print "Error: user %s does not exist" % username
+			return not_found() # TODO XXX
+		users.append(user)
+
+	# Create the group
+	group = models.Group(groupname=groupname)	
 	try:
-		db.session.add(user)
+		db.session.add(group)
+
+	    # Add users to the group
+		for user in users:
+			group.users.append(user)
+
+	    # Woohoo!
 		db.session.commit()
 		return response_ok()
 	except exc.IntegrityError:
-		print("Duplicate username")
+		print "Error: Duplicate groupname"
         db.session.rollback()
         return not_found() # TODO XXX
-    
-
 
 def search_by_groupname(fmt_query):
 	# query the database for matching groupnames
@@ -147,15 +169,15 @@ def search_groups():
 	fmt_query = query.replace('*', '%')
 
 	groupname_search_set = search_by_groupname(fmt_query)
-	username_search_set = search_by_username(fmt_query) - groupname_set
+	username_search_set = search_by_username(fmt_query) - groupname_search_set
+	print username_search_set
 
 	data = {
 		"groups_by_groupname": [group.groupname for group in groupname_search_set],
-		"groups_by_username": [group.groupname for group in groupname_search_set],
+		"groups_by_username": [group.groupname for group in username_search_set],
 	}
 
 	return response_ok(data)
-
 
 ## MESSAGES 
 @app.route('/messages/fetch', methods=['GET', 'POST'])
