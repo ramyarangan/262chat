@@ -242,16 +242,22 @@ def fetch_undelivered_messages_group():
 	# Get these messages from everyone in the specified group
 	users = get_users_by_groupname(from_group)
 	usernames = [user.username for user in users]
+	usernames = [user for user in usernames if (user != to_user)]
 
 	seen_msg = models.Seen.query.filter( \
 		(models.Seen.viewer == to_user) & \
 		(models.Seen.room_group == from_group)).first()
-	last_id = seen_msg.last_seen_id
-	msgs = models.Message.query.filter( \
-		(models.Message.to_groupname == from_group) & \
-		(models.Message.sender_username in usernames) & \
-		(models.Message.id > last_id)). \
-		order_by(models.Message.id).all()
+	msgs = []
+	last_id = None
+	if (seen_msg != None):
+		last_id = seen_msg.last_seen_id
+		if (last_id == 0):
+			last_id = last_id - 1
+		msgs = models.Message.query.filter( \
+			(models.Message.to_groupname == from_group) & \
+			(models.Message.sender_username.in_(usernames)) & \
+			(models.Message.id > last_id)). \
+			order_by(models.Message.id).all()
 
 	data = {
 		"messages": [msg.body for msg in msgs],
@@ -297,7 +303,7 @@ def send_message_group():
 	to_group_users = [user.username for user in users]
 
 	m = models.Message(body=message, timestamp=datetime.now(),\
-	sender_username=sender, to_groupname=to_group)
+	sender_username=sender, to_groupname=to_group, to_username=None)
 	db.session.add(m)
 	try:
 		db.session.commit()
@@ -306,13 +312,18 @@ def send_message_group():
 		pass
 
 	for to in to_group_users:
-		s = models.Seen(viewer=to, room_user=None, room_group=to_group)
-		db.session.add(s)
-		try:
-			db.session.commit()
-		except exc.SQLAlchemyError:
-			#TODO
-			pass
+		in_db = models.Seen.query.filter( \
+			(models.Seen.viewer == to) & \
+			(models.Seen.room_user == None) & \
+			(models.Seen.room_group == to_group)).all()
+		if (len(in_db) == 0):
+			s = models.Seen(viewer=to, room_user=None, room_group=to_group)
+			db.session.add(s)
+			try:
+				db.session.commit()
+			except exc.SQLAlchemyError:
+				#TODO
+				pass
 
 	return response_ok()
 
