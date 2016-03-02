@@ -68,7 +68,6 @@ def response_ok(data={}):
 
 
 
-
 ## ACCOUNTS 
 
 def get_user_by_username(username):
@@ -112,8 +111,7 @@ def login():
 
     user = get_user_by_username(username)
     if user:
-        # TODO validate password, check if logged out
-        return response_ok()
+        # dumblock
         if user.logged_in:
         	return error_forbidden("This account is already logged in " \
         		"on another device. Please log out there and try again.")
@@ -134,8 +132,15 @@ def logout():
 
     user = get_user_by_username(username)
     if user:
-        # TODO check if logged in
-        return response_ok()
+        if user.logged_in:
+        	user.logged_in = False
+        	try:
+	            db.session.commit()
+	            return response_ok()
+	        except exc.SQLAlchemyError:
+	        	return error_internal_server("Internal database error while logging out")
+        else:
+        	return error_forbidden("This account is not logged in.")
     else:
         return error_unauthorized("No account found with username '%s'." % username)
 
