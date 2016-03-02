@@ -41,6 +41,16 @@ def error_unauthorized(message = ""):
     resp.status_code = 401
     return resp
 
+@app.errorhandler(403)
+def error_forbidden(message = ""):
+    print message
+    data = {
+        'message': message,
+    }
+    resp = jsonify(data)
+    resp.status_code = 403
+    return resp
+
 @app.errorhandler(500)
 def error_internal_server(message = ""):
     print message
@@ -104,6 +114,16 @@ def login():
     if user:
         # TODO validate password, check if logged out
         return response_ok()
+        if user.logged_in:
+        	return error_forbidden("This account is already logged in " \
+        		"on another device. Please log out there and try again.")
+        else:
+        	user.logged_in = True
+        	try:
+	            db.session.commit()
+	            return response_ok()
+	        except exc.SQLAlchemyError:
+	        	return error_internal_server("Internal database error while logging in")
     else:
         return error_unauthorized("No account found with username '%s'." % username)
 
@@ -247,6 +267,9 @@ def fetch_undelivered_messages():
     user = parsed_json["to"]
     from_user = parsed_json["from"]
 
+    if not get_user_by_username(from_user):
+    	return error_internal_server("No such user exists. Maybe the account was deleted?")
+
     # get only the unseen messages from "from_user"
     seen_msg = models.Seen.query.filter( \
         (models.Seen.viewer == user) & \
@@ -313,6 +336,15 @@ def send_message():
     sender = parsed_json["sender"]
     to = parsed_json["to"]
     message = parsed_json["message"]
+
+    u = get_user_by_username(to)
+    if not u:
+    	return error_invalid_params( \
+    		"The recipient of this message is not a valid username.")
+    u = get_user_by_username(sender)
+    if not u:
+    	return error_invalid_params( \
+    		"The sender of this message is not a valid username.")    
 
     m = models.Message(body=message, timestamp=datetime.now(),\
         sender_username=sender, to_groupname = None, to_username=to)
