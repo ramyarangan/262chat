@@ -161,6 +161,9 @@ def search_users():
 
 ## GROUPS
 
+def get_group_by_groupname(groupname):
+    return models.Group.query.filter_by(groupname=groupname).first()
+
 @app.route('/groups/create', methods=['GET', 'POST'])
 def create_group():
     parsed_json = json.loads(request.data)
@@ -241,13 +244,19 @@ def search_groups():
 
     return response_ok(data)
 
+
+
 ## MESSAGES 
-# TODO: Check that messages are sent to people in the database, and so on
-# Basically all error checking.
-@app.route('/messages/fetch', methods=['GET', 'POST'])
-def fetch_messages():
+
+# Fetch all messages sent to a given user. Unused by the client.
+@app.route('/messages/fetch-all', methods=['GET', 'POST'])
+def fetch_all_messages():
     parsed_json = json.loads(request.data)
     user = parsed_json["username"]
+
+    if not get_user_by_username(user):
+    	return error_internal_server( \
+    		"User %s does not exist. Maybe the account was deleted?" % user)
 
     message_list = models.Message.query.filter_by(to_username=user).all()
 
@@ -268,7 +277,8 @@ def fetch_undelivered_messages():
     from_user = parsed_json["from"]
 
     if not get_user_by_username(from_user):
-    	return error_internal_server("No such user exists. Maybe the account was deleted?")
+    	return error_internal_server( \
+    		"User %s does not exist. Maybe the account was deleted?" % from_user)
 
     # get only the unseen messages from "from_user"
     seen_msg = models.Seen.query.filter( \
@@ -298,6 +308,10 @@ def fetch_undelivered_messages_group():
     parsed_json = json.loads(request.data)
     to_user = parsed_json["to"]
     from_group = parsed_json["from"]
+
+    if not get_group_by_groupname(from_group):
+    	return error_internal_server( \
+    		"Group %s does not exist." % from_group)
 
     # Get these messages from everyone in the specified group
     users = get_users_by_groupname(from_group)
@@ -329,7 +343,6 @@ def fetch_undelivered_messages_group():
     resp.status_code = 200
     return resp
 
-# here also add to last seen table
 @app.route('/messages/send', methods=['POST'])
 def send_message():
     parsed_json = json.loads(request.data)
