@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 @app.errorhandler(404)
-def not_found():
+def not_found(message = ""):
     message = 'Not Found: ' + request.url
     print message
     data = {
@@ -90,6 +90,7 @@ def delete_account():
             db.session.commit()
             return response_ok()
         except exc.SQLAlchemyError:
+            print 'wtf'
             return error_internal_server("Internal database error")
     else:
         return error_unauthorized("No account found with username '%s'." % username)
@@ -101,7 +102,19 @@ def login():
 
     user = get_user_by_username(username)
     if user:
-        # TODO validate password
+        # TODO validate password, check if logged out
+        return response_ok()
+    else:
+        return error_unauthorized("No account found with username '%s'." % username)
+
+@app.route('/accounts/logout', methods=['POST'])
+def logout():
+    parsed_json = json.loads(request.data)
+    username = parsed_json["username"]
+
+    user = get_user_by_username(username)
+    if user:
+        # TODO check if logged in
         return response_ok()
     else:
         return error_unauthorized("No account found with username '%s'." % username)
