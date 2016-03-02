@@ -13,7 +13,7 @@
 
 4. Enter `pip install -r requirements.txt` to install necessary dependencies. 
 
-5. Run ./db_create to initialize the database.
+5. Run `./db_create` to initialize the database.
 
 
 ## Running
