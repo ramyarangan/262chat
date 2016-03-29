@@ -10,7 +10,7 @@ from datetime import datetime
 
 
 @app.errorhandler(404)
-def not_found():
+def not_found(message = ""):
     message = 'Not Found: ' + request.url
     print message
     data = {
@@ -41,6 +41,16 @@ def error_unauthorized(message = ""):
     resp.status_code = 401
     return resp
 
+@app.errorhandler(403)
+def error_forbidden(message = ""):
+    print message
+    data = {
+        'message': message,
+    }
+    resp = jsonify(data)
+    resp.status_code = 403
+    return resp
+
 @app.errorhandler(500)
 def error_internal_server(message = ""):
     print message
@@ -55,7 +65,6 @@ def response_ok(data={}):
     resp = jsonify(data)
     resp.status_code = 200
     return resp
-
 
 
 
@@ -90,6 +99,7 @@ def delete_account():
             db.session.commit()
             return response_ok()
         except exc.SQLAlchemyError:
+            print 'wtf'
             return error_internal_server("Internal database error")
     else:
         return error_unauthorized("No account found with username '%s'." % username)
@@ -101,8 +111,36 @@ def login():
 
     user = get_user_by_username(username)
     if user:
-        # TODO validate password
-        return response_ok()
+        # dumblock
+        if user.logged_in:
+        	return error_forbidden("This account is already logged in " \
+        		"on another device. Please log out there and try again.")
+        else:
+        	user.logged_in = True
+        	try:
+	            db.session.commit()
+	            return response_ok()
+	        except exc.SQLAlchemyError:
+	        	return error_internal_server("Internal database error while logging in")
+    else:
+        return error_unauthorized("No account found with username '%s'." % username)
+
+@app.route('/accounts/logout', methods=['POST'])
+def logout():
+    parsed_json = json.loads(request.data)
+    username = parsed_json["username"]
+
+    user = get_user_by_username(username)
+    if user:
+        if user.logged_in:
+        	user.logged_in = False
+        	try:
+	            db.session.commit()
+	            return response_ok()
+	        except exc.SQLAlchemyError:
+	        	return error_internal_server("Internal database error while logging out")
+        else:
+        	return error_forbidden("This account is not logged in.")
     else:
         return error_unauthorized("No account found with username '%s'." % username)
 
@@ -127,6 +165,9 @@ def search_users():
 
 
 ## GROUPS
+
+def get_group_by_groupname(groupname):
+    return models.Group.query.filter_by(groupname=groupname).first()
 
 @app.route('/groups/create', methods=['GET', 'POST'])
 def create_group():
@@ -208,13 +249,19 @@ def search_groups():
 
     return response_ok(data)
 
+
+
 ## MESSAGES 
-# TODO: Check that messages are sent to people in the database, and so on
-# Basically all error checking.
-@app.route('/messages/fetch', methods=['GET', 'POST'])
-def fetch_messages():
+
+# Fetch all messages sent to a given user. Unused by the client.
+@app.route('/messages/fetch-all', methods=['GET', 'POST'])
+def fetch_all_messages():
     parsed_json = json.loads(request.data)
     user = parsed_json["username"]
+
+    if not get_user_by_username(user):
+    	return error_internal_server( \
+    		"User %s does not exist. Maybe the account was deleted?" % user)
 
     message_list = models.Message.query.filter_by(to_username=user).all()
 
@@ -233,6 +280,10 @@ def fetch_undelivered_messages():
     parsed_json = json.loads(request.data)
     user = parsed_json["to"]
     from_user = parsed_json["from"]
+
+    if not get_user_by_username(from_user):
+    	return error_internal_server( \
+    		"User %s does not exist. Maybe the account was deleted?" % from_user)
 
     # get only the unseen messages from "from_user"
     seen_msg = models.Seen.query.filter( \
@@ -262,6 +313,10 @@ def fetch_undelivered_messages_group():
     parsed_json = json.loads(request.data)
     to_user = parsed_json["to"]
     from_group = parsed_json["from"]
+
+    if not get_group_by_groupname(from_group):
+    	return error_internal_server( \
+    		"Group %s does not exist." % from_group)
 
     # Get these messages from everyone in the specified group
     users = get_users_by_groupname(from_group)
@@ -293,13 +348,21 @@ def fetch_undelivered_messages_group():
     resp.status_code = 200
     return resp
 
-# here also add to last seen table
 @app.route('/messages/send', methods=['POST'])
 def send_message():
     parsed_json = json.loads(request.data)
     sender = parsed_json["sender"]
     to = parsed_json["to"]
     message = parsed_json["message"]
+
+    u = get_user_by_username(to)
+    if not u:
+    	return error_invalid_params( \
+    		"The recipient of this message is not a valid username.")
+    u = get_user_by_username(sender)
+    if not u:
+    	return error_invalid_params( \
+    		"The sender of this message is not a valid username.")    
 
     m = models.Message(body=message, timestamp=datetime.now(),\
         sender_username=sender, to_groupname = None, to_username=to)

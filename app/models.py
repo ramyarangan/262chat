@@ -25,8 +25,8 @@ class Message(db.Model):
     body = db.Column(db.Text(), nullable=False)
     timestamp = db.Column(db.DateTime)
 
-    sender_username = db.Column(db.String(20), db.ForeignKey('user.username'), \
-        nullable=False)
+    # NULL sender means that the user deleted the account
+    sender_username = db.Column(db.String(20), db.ForeignKey('user.username'), default='<Account Deleted>')
     to_username = db.Column(db.String(20), db.ForeignKey('user.username'), \
         nullable=True)
     to_groupname = db.Column(db.String(40), db.ForeignKey('group.groupname'), \
@@ -45,6 +45,8 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), index=True, unique=True)
+
+    logged_in = db.Column(db.Boolean, default=False)
 
     received_msgs = db.relationship('Message', backref='to_user', lazy='dynamic', \
         foreign_keys=[Message.to_username])
