@@ -316,15 +316,6 @@ def logout():
     else:
         return error_unauthorized("No account found with username '%s'." % username)
 
-Search for users matching a query which can have wildcards.
-    On server failure, prints error message.
-    Otherwise, prints all users found into the chat client.
-
-    Args: 
-        query: Username to be searched for, including wildcards
-                to search for usernames by simple patterns.
-            type: string
-
 @app.route('/accounts/search', methods=['POST'])
 def search_users():
     """
@@ -382,14 +373,29 @@ def get_group_by_groupname(groupname):
 
 @app.route('/groups/create', methods=['GET', 'POST'])
 def create_group():
+    """
+    Creates a new group in the database, with the specified group name
+    and usernames. A user is only permitted to create a group of which he
+    or she is a member.
+    This request fails if any of the following are true:
+        - The groupname is already in use.
+        - Any of the supplied usernames do not exist.
+        - The creator of the group isn't a member of the group.
+
+    HTTP request arguments:
+        `creator`: the username of the user who created the group 
+        `usernames`: a JSON-formatted list of usernames who will be the group members
+        `groupname`: the username of the desired new account
+
+    Returns: 
+        HTTP response object for the client, indicating whether / how the 
+        creation attempt succeeded or failed.
+            type: flask.Response
+    """
     parsed_json = json.loads(request.data)
     creator = parsed_json["creator"]
     usernames = parsed_json["usernames"]
     groupname = parsed_json["groupname"]
-    
-    print creator
-    print usernames
-    print groupname
 
     # Validate and retrieve users
     if creator not in usernames:
@@ -419,14 +425,42 @@ def create_group():
         db.session.rollback()
         return error_internal_server("A group already exists with that name.")
 
-def search_by_groupname(fmt_query):
-    # query the database for matching groupnames
+def search_groups_by_groupname(fmt_query):
+    """
+    Search the database for groups with a groupname matching the given 
+    query string, formatted in SQLAlchemy search syntax.
+    
+    Args:
+        username: the query string against which to compare groupnames, 
+        formatted in SQLAlchemy search syntax.
+            type: string
+
+    Returns: 
+        A set of objects representing groups with a groupname that matches
+        the query. The set is empty if no matching groups were found.
+            type: set(models.Groups)
+    """
     matches = models.Group.query.filter(models.Group.groupname.like(fmt_query)) \
     	.order_by(models.Group.groupname).all()
     
     return set(matches)
 
-def search_by_username(fmt_query):
+def search_groups_by_username(fmt_query):
+    """
+    Search the database for groups containing one or more username(s) 
+    matching the given query string, formatted in SQLAlchemy search syntax.
+
+    Args:
+        username: the query string against which to compare usernames, 
+        formatted in SQLAlchemy search syntax.
+            type: string
+
+    Returns: 
+        A set of objects representing groups with at least one username
+        that matches the query. The set is empty if no matching 
+        user was found.
+            type: set(models.Groups)
+    """
     # query database for matching usernames
     group_set = set()
     matches = models.User.query.filter(models.User.username.like(fmt_query)) \
@@ -437,20 +471,54 @@ def search_by_username(fmt_query):
     return group_set
 
 def get_users_by_groupname(groupname):
+    """
+    Fetch from the database data corresponding to the users in the group 
+    with the specified groupname. 
+
+    Args:
+        groupname: the groupname of interest
+            type: string
+
+    Returns: 
+        A list of objects representing users in the group of interest,
+        or None if no matching group was found
+            type: list(models.User)
+    """
     group = models.Group.query.filter_by(groupname=groupname).first()
     return group.users
 
-# TODO: Need to handle responses if we have non-unique groupnames
 @app.route('/groups/search', methods=['GET', 'POST'])
 def search_groups():
+    """
+    Search the database for groups either with a groupname or containing one or more 
+    username(s) matching a given query string. 
+    This search supports variable-length wildcards (signaled by character '*').
+    For example, if you query 'a*', names 'a', 'aa', and 'abxyz' match, but 
+    'ba' does not.
+
+    HTTP request arguments:
+        `query`: The query string against which to compare groupnames and usernames
+            type: string
+
+    Returns: 
+        HTTP response object for the client. On success, the response has status
+        code 200 (OK) and includes JSON-encoded data for the following keys:
+        - 'groups_by_groupname': a list of groupnames that match the query
+        - 'groups_by_username': a list of groupnames corresponding to groups which 
+            have at least one username that matches the query, but which are NOT 
+            already in 'groups_by_groupname'
+        On failure, an error message is passed, and the appropriate status code is set.
+            type: flask.Response
+    """
+
     parsed_json = json.loads(request.data)
     query = parsed_json['query']
 
     # match SQLalchemy search syntax
     fmt_query = query.replace('*', '%')
 
-    groupname_search_set = search_by_groupname(fmt_query)
-    username_search_set = search_by_username(fmt_query) - groupname_search_set
+    groupname_search_set = search_groups_by_groupname(fmt_query)
+    username_search_set = search_groups_by_username(fmt_query) - groupname_search_set
     print username_search_set
 
     data = {
