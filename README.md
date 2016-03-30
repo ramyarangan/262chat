@@ -67,12 +67,13 @@ We chose to require that the client handle login and logout functionality - when
 We handle errors by sending appropriate REST status codes in responses from the server to the client. For instance, when an invalid username is used for login, the server’s response to the client contains the status code 401 and a helpful message signaling unauthorized use. We are particularly careful when sending recent messages stored in the server’s databases to the client. Indeed, according to the specifications, upon sending new messages, the server must mark the messages as read in the database such that they will not be sent to the client again on future requests for messages. Thus, it is especially essential to ensure that the messages that are sent only once to the client are truly received over the network, to prevent the client from irrevocably missing messages. To ensure this, the client sends the server an ack message with message id’s it has seen; only upon receiving this ack message does the server mark these messages as read.
 
 
-## Imports, included in requirements.txt
+## Imports
 
-### The server is built on the Python web microframework [Flask](http://flask.pocoo.org/). 
-### It persists data in an [SQLAlchemy](http://www.sqlalchemy.org/) database, integrated using the [Flask-SQLAlchemy extension](http://flask-sqlalchemy.pocoo.org/2.1/). 
-### To manage database creation and updates, we use the [SQLAlchemy-Migrate extension](https://sqlalchemy-migrate.readthedocs.org/). 
-### To communicate between the server and client via REST, we use the [requests](http://docs.python-requests.org/en/master/) Python module. 
+### Included in requirements.txt 
+* The server is built on the Python web microframework [Flask](http://flask.pocoo.org/). 
+* It persists data in an [SQLAlchemy](http://www.sqlalchemy.org/) database, integrated using the [Flask-SQLAlchemy extension](http://flask-sqlalchemy.pocoo.org/2.1/). 
+* To manage database creation and updates, we use the [SQLAlchemy-Migrate extension](https://sqlalchemy-migrate.readthedocs.org/). 
+* To communicate between the server and client via REST, we use the [requests](http://docs.python-requests.org/en/master/) Python module. 
 
 ## Files
 
