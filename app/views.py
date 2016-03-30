@@ -182,10 +182,34 @@ def response_ok(data={}):
 # ACCOUNTS 
 
 def get_user_by_username(username):
+    """
+    Fetch data corresponding to the user with the specified username 
+    from the database.
+
+    Args:
+        username: the username of interest
+            type: string
+
+    Returns: 
+        Object representing data corresponding to the user of interest,
+        or None if no matching user was found
+            type: models.User
+    """
     return models.User.query.filter_by(username=username).first()
 
 @app.route('/accounts/create', methods=['POST'])
 def create_account():
+    """
+    Creates a new account in the database. Fails if the account already exists.
+
+    HTTP request arguments:
+        `username`: the username of the desired new account
+
+    Returns: 
+        HTTP response object for the client, indicating whether / how the 
+        creation attempt succeeded or failed.
+            type: flask.Response
+    """
     parsed_json = json.loads(request.data)
     username = parsed_json["username"]
 
@@ -200,6 +224,18 @@ def create_account():
 
 @app.route('/accounts/delete', methods=['GET', 'POST'])
 def delete_account():
+    """
+    Delete an account from the database, as well as all messages sent from the account.
+    Fails if the account does not exist.
+
+    HTTP request arguments:
+        `username`: the username of the desired new account
+
+    Returns: 
+        HTTP response object for the client, indicating whether / how the 
+        deletion attempt succeeded or failed.
+            type: flask.Response
+    """
     parsed_json = json.loads(request.data)
     username = parsed_json["username"]
 
@@ -210,19 +246,31 @@ def delete_account():
             db.session.commit()
             return response_ok()
         except exc.SQLAlchemyError:
-            print 'wtf'
             return error_internal_server("Internal database error")
     else:
-        return error_unauthorized("No account found with username '%s'." % username)
+        return error_invalid_params("No account found with username '%s'." % username)
 
 @app.route('/accounts/login', methods=['POST'])
 def login():
+    """
+    Log in a given user. Fails if the account is already logged-in elsewhere, 
+    or if it does not exist.
+
+    HTTP request arguments:
+        `username`: the username of the account to log in.
+
+    Returns: 
+        HTTP response object for the client, indicating whether / how the 
+        login attempt succeeded or failed.
+            type: flask.Response
+    """
+
     parsed_json = json.loads(request.data)
     username = parsed_json["username"]
 
     user = get_user_by_username(username)
     if user:
-        # dumblock
+        # Only allow one instance of an account to be logged in at a time.
         if user.logged_in:
         	return error_forbidden("This account is already logged in " \
         		"on another device. Please log out there and try again.")
@@ -238,6 +286,19 @@ def login():
 
 @app.route('/accounts/logout', methods=['POST'])
 def logout():
+    """
+    Log out a given user. Fails if the account is not logged in to begin with, 
+    or if it does not exist.
+
+    HTTP request arguments:
+        `username`: the username of the account to log out.
+
+    Returns: 
+        HTTP response object for the client, indicating whether / how the 
+        logout attempt succeeded or failed.
+            type: flask.Response
+    """
+
     parsed_json = json.loads(request.data)
     username = parsed_json["username"]
 
@@ -255,8 +316,34 @@ def logout():
     else:
         return error_unauthorized("No account found with username '%s'." % username)
 
+Search for users matching a query which can have wildcards.
+    On server failure, prints error message.
+    Otherwise, prints all users found into the chat client.
+
+    Args: 
+        query: Username to be searched for, including wildcards
+                to search for usernames by simple patterns.
+            type: string
+
 @app.route('/accounts/search', methods=['POST'])
 def search_users():
+    """
+    Search the database for users with usernames matching a given query string. 
+    This search supports variable-length wildcards (signaled by character '*').
+    For example, if you query 'a*', usernames 'a', 'aa', and 'abxyz' match, but 
+    'ba' does not.
+
+    HTTP request arguments:
+        `query`: The query string against which to compare usernames
+            type: string
+
+    Returns: 
+        HTTP response object for the client. On success, the response includes a
+        list of matching usernames encoded in JSON with key `accounts` and status code 200.
+        On failure, an error message is passed, and the status code is set appropriately.
+            type: flask.Response
+    """
+
     parsed_json = json.loads(request.data)
     query = parsed_json['query']
 
@@ -274,10 +361,23 @@ def search_users():
     return response_ok(data)
 
 
-
+#==================================
 ## GROUPS
 
 def get_group_by_groupname(groupname):
+    """
+    Fetch data corresponding to the group with the specified group name 
+    from the database.
+
+    Args:
+        groupname: the group name of interest
+            type: string
+
+    Returns: 
+        Object representing data corresponding to the group of interest,
+        or None if no matching group was found
+            type: models.Group
+    """
     return models.Group.query.filter_by(groupname=groupname).first()
 
 @app.route('/groups/create', methods=['GET', 'POST'])
@@ -361,7 +461,7 @@ def search_groups():
     return response_ok(data)
 
 
-
+#==================================
 ## MESSAGES 
 
 # Fetch all messages sent to a given user. Unused by the client.
