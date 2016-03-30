@@ -4,8 +4,9 @@
 
 1. Clone the [Github repo](https://github.com/ramyarangan/262chat.git). 
    All paths are now relative to the top-level directory.
-
-   ``` git clone https://github.com/ramyarangan/262chat.git ```
+   ``` 
+   git clone https://github.com/ramyarangan/262chat.git 
+   ```
 
 2. Set up Flask. We suggest using a virtual environment to manage dependenies, as follows:
 
@@ -16,16 +17,24 @@
 	```
 
 	* Initialize the virtual environment.
-	```virtualenv venv```
+	```
+	virtualenv venv
+	```
 
 	* Activate the environment.
-	```. venv/bin/activate```
+	```
+	. venv/bin/activate
+	```
 	
 	* Install all necessary dependencies (into the venv).
-	```pip install -r requirements.txt```
+	```
+	pip install -r requirements.txt
+	```
 
 3. Initialize the database. This will create a folder `db_repository` in the project root, where the server will store the database data as well as metadata for migrations.
-``` ./db_create ```
+``` 
+./db_create 
+```
 
 
 ## Running
