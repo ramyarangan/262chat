@@ -1,5 +1,16 @@
-from app import db
+'''
+This file is the 'Model' part of the chat application's MVC architecture.
+It contains definitions of the four classes of data that the chat application
+uses: seen status, messages, users, and groups. 
 
+Each of these classes corresponds to a table in the SQLAlchemy database.
+The constructors for the classes define the schema for the corresponding
+table. Note that simply creating a Model object doesn't add it to the 
+database: one must add it and commit it to have the data persist.
+'''
+
+# Flask framework component representing the (SQLAlchemy-powered) database
+from app import db
 
 class Seen(db.Model):
     '''
@@ -35,6 +46,8 @@ class Message(db.Model):
     def __repr__(self):
         return '<Message %r>' % (self.body)
 
+# Link User objects with Group objects, so that given a group, 
+# it is easy to access information about all the users in the group.
 users_groups_assoc_table = db.Table('usersgroups', 
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
     db.Column('group_id', db.Integer, db.ForeignKey('group.id'),)
