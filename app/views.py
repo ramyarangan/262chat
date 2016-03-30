@@ -316,15 +316,6 @@ def logout():
     else:
         return error_unauthorized("No account found with username '%s'." % username)
 
-Search for users matching a query which can have wildcards.
-    On server failure, prints error message.
-    Otherwise, prints all users found into the chat client.
-
-    Args: 
-        query: Username to be searched for, including wildcards
-                to search for usernames by simple patterns.
-            type: string
-
 @app.route('/accounts/search', methods=['POST'])
 def search_users():
     """
