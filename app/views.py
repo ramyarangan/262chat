@@ -12,7 +12,8 @@ the current request being handled.
 
 # Flask microframework utilities: 
 #   `request` is an object that represents the current request being handled
-#   `jsonify` is a utility function that converts Python dict into JSON string
+#   `jsonify` is a utility function Creates a flask.Response (HTTP response) object 
+#        with the JSON representation of given arguments with an application/json mimetype.
 from flask import request, jsonify
 
 # Database exception handlers: `exc` is SQLAlchemy's exception suite
@@ -37,6 +38,20 @@ from datetime import datetime
 
 @app.errorhandler(404)
 def not_found(message = ""):
+    """
+    Send an HTTP response signaling that the request was intended for
+    an unhandled route, along with an optional error message.
+
+    Args:
+        message: Error message intended for the client.
+            type: string
+
+    Returns: 
+        HTTP response object with status set to 404 (Not found), mimetype
+        as application/json, and passed-in `message` encoded in JSON with key 'message'.
+            type: flask.Response
+    """
+
     message = 'Not Found: ' + request.url
     print message
     data = {
@@ -49,6 +64,20 @@ def not_found(message = ""):
 
 @app.errorhandler(400)
 def error_invalid_params(message = ""):
+    """
+    Send an HTTP response signaling that the request has invalid 
+    or malformed parameters along with an optional error message.
+
+    Args:
+        message: Error message intended for the client.
+            type: string
+
+    Returns: 
+        HTTP response object with status set to 400 (Bad request), mimetype
+        as application/json, and passed-in `message` encoded in JSON with key 'message'.
+            type: flask.Response
+    """
+
     print message
     data = {
         'message': message,
@@ -59,6 +88,20 @@ def error_invalid_params(message = ""):
 
 @app.errorhandler(401)
 def error_unauthorized(message = ""):
+    """
+    Send an HTTP response signaling unauthorized access (status code 401), 
+    along with an optional error message.
+
+    Args:
+        message: Error message intended for the client.
+            type: string
+
+    Returns: 
+        HTTP response object with status set to 401 (Unauthorized), mimetype
+        as application/json, and passed-in `message` encoded in JSON with key 'message'.
+            type: flask.Response
+    """
+
     print message
     data = {
         'message': message,
@@ -69,6 +112,20 @@ def error_unauthorized(message = ""):
 
 @app.errorhandler(403)
 def error_forbidden(message = ""):
+    """
+    Send an HTTP response signaling forbidden access (status code 403), 
+    along with an optional error message.
+
+    Args:
+        message: Error message intended for the client.
+            type: string
+
+    Returns: 
+        HTTP response object with status set to 403 (Forbidden), mimetype
+        as application/json, and passed-in `message` encoded in JSON with key 'message'.
+            type: flask.Response
+    """
+
     print message
     data = {
         'message': message,
@@ -79,6 +136,20 @@ def error_forbidden(message = ""):
 
 @app.errorhandler(500)
 def error_internal_server(message = ""):
+    """
+    Send an HTTP response signaling an internal server error, 
+    along with an optional error message.
+
+    Args:
+        message: Error message intended for the client.
+            type: string
+
+    Returns: 
+        HTTP response object with status set to 500 (Internal server error), mimetype
+        as application/json, and passed-in `message` encoded in JSON with key 'message'.
+            type: flask.Response
+    """
+
     print message
     data = {
         'message': message,
@@ -88,6 +159,20 @@ def error_internal_server(message = ""):
     return resp
 
 def response_ok(data={}):
+    """
+    Send an HTTP response signaling success, along with any data 
+    the client might be interested in.
+
+    Args:
+        data: Any data that the server wishes to pass to the client
+            type: dict
+
+    Returns: 
+        HTTP response object with status set to 200 (OK), mimetype
+        as application/json, and `data` encoded in JSON format.
+            type: flask.Response
+    """
+
     resp = jsonify(data)
     resp.status_code = 200
     return resp
