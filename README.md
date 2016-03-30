@@ -96,4 +96,4 @@ We handle errors by sending appropriate REST status codes in responses from the 
 
 ### Chat Application Client
 * `client/`
-	* `client.py` - creates terminal chat application 
+	* `client.py` - creates terminal chat application, which interacts with chat server
