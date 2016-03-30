@@ -535,6 +535,30 @@ def search_groups():
 # Fetch all messages sent to a given user. Unused by the client.
 @app.route('/messages/fetch-all', methods=['GET', 'POST'])
 def fetch_all_messages():
+    """
+    Retrieve all the messages ever sent to a given user, both seen and not yet seen.
+    Fails if the user does not exist.
+
+    Note: currently, the client does not ever hit this handler.
+
+    HTTP request arguments:
+        `username`: the user whose messages we want to retrieve
+            type: string
+
+    Returns: 
+        HTTP response object for the client. On success, the response has status
+        code 200 (OK) and includes JSON-encoded data for the following keys:
+        - 'messages': A list of message bodies of all messages sent to this user.
+        - 'ids': A list of message ids corresponding to the above messages.
+        - 'authors': A list of the senders who wrote the messages; the order again
+            corresponds.
+        - 'group': A list of groups in which each message was sent; the order again
+            corresponds. For messages not sent in a group, the corresponding entry is None.
+        The above lists are empty if no corresponding messages were found.
+        On failure, an error message is passed in the response, and the appropriate 
+        status code is set.
+            type: flask.Response
+    """
     parsed_json = json.loads(request.data)
     user = parsed_json["username"]
 
@@ -556,6 +580,29 @@ def fetch_all_messages():
 
 @app.route('/messages/fetch-undelivered', methods=['POST'])
 def fetch_undelivered_messages():
+    """
+    Retrieve all unseen messages sent to a given user from another 
+    specific user. Fails if either user does not exist.
+
+    HTTP request arguments:
+        `to`: the recipient of the messages to retrieve
+            type: string
+        `from`: the sender of the messages to retrieve
+            type: string
+
+    Returns: 
+        HTTP response object for the client. On success, the response has status
+        code 200 (OK) and includes JSON-encoded data for the following keys:
+        - 'messages': A list of message bodies of all unseen messages sent to the `to` user.
+        - 'ids': A list of message ids corresponding to the above messages.
+        - 'last_id': The last (latest) ID of a message that the `to` user has seen from
+            the `from` user. This information is used by the client to know which messages
+            to actually render in the chatroom.
+        The above lists are empty if no corresponding messages were found.
+        On failure, an error message is passed in the response, and the appropriate 
+        status code is set.
+            type: flask.Response
+    """
     parsed_json = json.loads(request.data)
     user = parsed_json["to"]
     from_user = parsed_json["from"]
@@ -589,6 +636,31 @@ def fetch_undelivered_messages():
 
 @app.route('/messages/fetch-undelivered-group', methods=['POST'])
 def fetch_undelivered_messages_group():
+    """
+    Retrieve all unseen messages sent to a given user from other members 
+    in a given group. Fails if either the user or the group does not exist.
+
+    HTTP request arguments:
+        `to`: the recipient of the messages to retrieve
+            type: string
+        `from`: the groupname of the group whose messages we want to retrieve
+            type: string
+
+    Returns: 
+        HTTP response object for the client. On success, the response has status
+        code 200 (OK) and includes JSON-encoded data for the following keys:
+        - 'messages': A list of message bodies of all unseen messages sent to the `to` user.
+        - 'authors': A list of the senders corresponding to the above messages.
+        - 'ids': A list of message ids corresponding to the above messages.
+        - 'last_id': The last (latest) ID of a message that the `to` user has seen from
+            the `from` group. This information is used by the client to know which messages
+            to actually render in the chatroom.
+        The above lists are empty if no corresponding messages were found.
+        On failure, an error message is passed in the response, and the appropriate 
+        status code is set.
+            type: flask.Response
+    """
+
     parsed_json = json.loads(request.data)
     to_user = parsed_json["to"]
     from_group = parsed_json["from"]
@@ -629,6 +701,24 @@ def fetch_undelivered_messages_group():
 
 @app.route('/messages/send', methods=['POST'])
 def send_message():
+    """
+    Record a message sent from one user to another. Fails if either the 
+    specified sender or the specified receiver username doesn't exist in 
+    the database.
+
+    HTTP request arguments:
+        `to`: the username of the message recipient
+            type: string
+        `sender`: the username of the message sender
+            type: string
+        `message`: the message body
+            type: string
+
+    Returns: 
+        HTTP response object for the client, indicating whether the send 
+        attempt succeeded or failed.
+            type: flask.Response
+    """
     parsed_json = json.loads(request.data)
     sender = parsed_json["sender"]
     to = parsed_json["to"]
@@ -659,6 +749,25 @@ def send_message():
 
 @app.route('/messages/send-group', methods=['POST'])
 def send_message_group():
+    """
+    Record a message sent from one user to a group. Fails if the 
+    specified sender username or receiver groupname doesn't exist in 
+    the database.
+
+    HTTP request arguments:
+        `to`: the groupname of the group to which this message was
+            type: string
+        `sender`: the username of the message sender
+            type: string
+        `message`: the message body
+            type: string
+
+    Returns: 
+        HTTP response object for the client, indicating whether the send 
+        attempt succeeded or failed.
+            type: flask.Response
+    """
+
     parsed_json = json.loads(request.data)
     sender = parsed_json["sender"]
     to_group = parsed_json["to"] # the group name
@@ -694,6 +803,34 @@ def send_message_group():
 
 @app.route('/messages/ack', methods=['GET', 'POST'])
 def ack_last_message():
+    """
+    Records the ID of the latest message that a given user has seen
+    either from another specific user (in the case of a private chat)
+    or in a group (in the case of a group chat). 
+
+    Clients should hit this endpoint with the appropriate fields
+    whenever they successfully fetch messages from the server. This is
+    important because the last_seen_id to determine which messages 
+    have not yet been seen, and therefore, which to send upon subsequent
+    fetch requests.
+
+    HTTP request arguments:
+        `viewer`: the name of the user viewing the message
+        `room_user`: the username of the message sender. This should be
+            filled in when the client is ack'ing messages in a private chat.
+            type: string
+        `room_group`: the groupname of the group of interest. This should be
+            filled in when the client is ack'ing messages in a group chat.
+            type: string
+        `last_seen_id`: the id of the last seen message corresponding 
+            to the above information
+            type: int
+
+    Returns: 
+        HTTP response object for the client, indicating whether the last
+        seen data was successfully stored.
+            type: flask.Response
+    """
     parsed_json = json.loads(request.data)
     viewer = parsed_json["viewer"]
     room_user = parsed_json.get("room_user")
