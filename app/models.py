@@ -28,13 +28,6 @@ class Seen(db.Model):
         The client needs to render every message it receives 
         from the server in the correct order, exactly once.
 
-    To achieve this, we note that message IDs are monotonically increasing
-    with time sent. So, every time the server receives a fetch message request
-    from a user for a conversation, it sends only messages with IDs greater than 
-    the last seen ID for this conversation — i.e., messages sent afterwards. 
-    When a client successfully receives messages from the server for a given chatroom, 
-    the client will make a follow-up 'ack' HTTP request to the server, with ID of the 
-    latest message received, and the server records this information. 
 
     Schema:
     - `id`
