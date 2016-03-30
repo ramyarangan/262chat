@@ -1,3 +1,7 @@
+'''
+Initializes Flask for the chat server.
+'''
+
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 

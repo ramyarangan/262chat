@@ -1,13 +1,39 @@
 '''
-Handlers for requests from web browsers or other clients. 
+This file is the 'View' part of the chat application's MVC architecture.
+It contains handlers for requests from clients. 
+
+Each handler catches requests sent to the server at the route specified
+in its arguments. At the time of execution, the object `request` represents 
+the current request being handled.
 '''
 
-from flask import render_template, request, Response, jsonify
+#==================================
+# IMPORTS
+
+# Flask microframework utilities: 
+#   `request` is an object that represents the current request being handled
+#   `jsonify` is a utility function that converts Python dict into JSON string
+from flask import request, jsonify
+
+# Database exception handlers: `exc` is SQLAlchemy's exception suite
 from sqlalchemy import exc
+
+# Flask framework components:
+#   `app` is an instance of class `Flask` and represents the
+#        application itself
+#   `db` represents the (SQLAlchemy-powered) database
+#   `models` are our data models, as defined in models.py
 from app import app, db, models
+
+# Package of JSON utilities, used to parse messages between client
 import json
+
+# Used to record time of message receipt by the server
 from datetime import datetime
 
+
+#==================================
+# ERROR HANDLERS
 
 @app.errorhandler(404)
 def not_found(message = ""):
@@ -67,8 +93,8 @@ def response_ok(data={}):
     return resp
 
 
-
-## ACCOUNTS 
+#==================================
+# ACCOUNTS 
 
 def get_user_by_username(username):
     return models.User.query.filter_by(username=username).first()

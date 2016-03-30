@@ -1,5 +1,7 @@
 # 262chat
 
+This is a chat application that supports private and group chats. 
+
 ## Installation
 
 1. Clone the [Github repo](https://github.com/ramyarangan/262chat.git). 
@@ -51,6 +53,8 @@ the server is running by modifying `SERVER_IP` and `SERVER_PORT` in
 ## Architecture
 
 TODO
+
+MVC architecture, blah blah blah
 
 The server is built on the Python web microframework [Flask](http://flask.pocoo.org/). It persists data in an [SQLAlchemy](http://www.sqlalchemy.org/) database, integrated using the [Flask-SQLAlchemy extension](http://flask-sqlalchemy.pocoo.org/2.1/). To manage database creation and updates, we use the [SQLAlchemy-Migrate extension](https://sqlalchemy-migrate.readthedocs.org/). 
 
