@@ -44,7 +44,7 @@
 
 ### Client
 Configure the client to point to the public IP/port of the machine on which 
-the server is running by modifying “SERVER_IP” and "SERVER_PORT" in 
+the server is running by modifying `SERVER_IP` and `SERVER_PORT` in 
 `client/client.py`. To run, use `python client/client.py`. 
 
 
