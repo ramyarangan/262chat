@@ -1,4 +1,12 @@
 #!venv/bin/python
+
+'''
+Rolls back the server's database by one migration. 
+
+To run: 
+	./db_downgrade.py
+'''
+
 from migrate.versioning import api
 from config import SQLALCHEMY_DATABASE_URI
 from config import SQLALCHEMY_MIGRATE_REPO

@@ -3,7 +3,7 @@
 
 ## Setup
 
-1. Clone the [Github repo] (https://github.com/ramyarangan/262chat.git). 
+1. Clone the [Github repo](https://github.com/ramyarangan/262chat.git). 
    All paths are now relative to the top-level directory.
 
 2. Follow the instructions [here](http://flask.pocoo.org/docs/0.10/installation/)
@@ -25,3 +25,31 @@
 Configure the client to point to the public IP/port of the machine on which 
 the server is running by modifying “SERVER_IP” and "SERVER_PORT" in 
 `client/client.py`. To run, use `python client/client.py`. 
+
+
+## Architecture
+
+TODO
+
+The server is built on the Python web microframework [Flask](http://flask.pocoo.org/). It persists data in an [SQLAlchemy](http://www.sqlalchemy.org/) database, integrated using the [Flask-SQLAlchemy extension](http://flask-sqlalchemy.pocoo.org/2.1/). To manage database creation and updates, we use the [SQLAlchemy-Migrate extension](https://sqlalchemy-migrate.readthedocs.org/). 
+
+## Files
+
+### General setup
+* config.py
+* requirements.txt
+
+### Database setup
+* `db_create.py`
+* `db_downgrade.py`
+* `db_migrate.py`
+* `db_upgrate.py`
+
+### Server
+* `run.py`
+* `app/`
+	* `__init__.py`
+	* `models.py`
+	* `views.py`
+* `client/`
+	* `client.py`
