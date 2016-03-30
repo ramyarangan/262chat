@@ -1,19 +1,31 @@
 # 262chat
 
-
-## Setup
+## Installation
 
 1. Clone the [Github repo](https://github.com/ramyarangan/262chat.git). 
    All paths are now relative to the top-level directory.
 
-2. Follow the instructions [here](http://flask.pocoo.org/docs/0.10/installation/)
-   to set up Flask.
+   ``` git clone https://github.com/ramyarangan/262chat.git ```
 
-3. Activate the virtual environment with `. /venv/bin/activate`.
+2. Set up Flask. We suggest using a virtual environment to manage dependenies, as follows:
 
-4. Enter `pip install -r requirements.txt` to install necessary dependencies. 
+	* Install [virtualenv](http://flask.pocoo.org/docs/0.10/installation/) if you don't have it already.
 
-5. Run `./db_create` to initialize the database.
+	``` 
+	sudo pip install virtualenv
+	```
+
+	* Initialize the virtual environment.
+	```virtualenv venv```
+
+	* Activate the environment.
+	```. venv/bin/activate```
+	
+	* Install all necessary dependencies (into the venv).
+	```pip install -r requirements.txt```
+
+3. Initialize the database. This will create a folder `db_repository` in the project root, where the server will store the database data as well as metadata for migrations.
+``` ./db_create ```
 
 
 ## Running
