@@ -57,8 +57,8 @@ The server is built on the Python web microframework [Flask](http://flask.pocoo.
 ## Files
 
 ### General setup
-* config.py
-* requirements.txt
+* `config.py`
+* `requirements.txt`
 
 ### Database setup
 * `db_create.py`
