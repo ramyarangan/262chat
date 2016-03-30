@@ -8,7 +8,7 @@
    git clone https://github.com/ramyarangan/262chat.git 
    ```
 
-2. Set up Flask. We suggest using a virtual environment to manage dependenies, as follows:
+2. Install Python dependencies. We suggest using a virtual environment to manage them, as follows:
 
 	* Install [virtualenv](http://flask.pocoo.org/docs/0.10/installation/) if you don't have it already.
 
