@@ -78,8 +78,8 @@ We handle errors by sending appropriate REST status codes in responses from the 
 ## Files
 
 ### General setup
-* `config.py`
-* `requirements.txt`
+* `config.py` - required for Flask setup
+* `requirements.txt` - imports
 
 ### Database setup
 * `db_create.py`
@@ -87,11 +87,13 @@ We handle errors by sending appropriate REST status codes in responses from the 
 * `db_migrate.py`
 * `db_upgrate.py`
 
-### Server
-* `run.py`
+### Chat Application Server
+* `run.py` - launches server
 * `app/`
 	* `__init__.py`
-	* `models.py`
-	* `views.py`
+	* `models.py` - database with tables for messages, message seen history, users, and groups
+	* `views.py` - API calls provided by the chat application server
+
+### Chat Application Client
 * `client/`
-	* `client.py`
+	* `client.py` - creates terminal chat application, which interacts with chat server
